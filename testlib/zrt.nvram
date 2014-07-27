@@ -1,0 +1,14 @@
+[args]
+args=zrt bla bla
+
+[time]
+seconds=1370454582 #since 1970
+
+[debug]
+verbosity=4
+
+[fstab] 
+#inject archive contents into zrt fs
+channel=/dev/mount/import.tar, mountpoint=/, access=ro, removable=no
+#save fs contents into archive
+channel=/dev/mount/export.tar,  mountpoint=/, access=wo, removable=no

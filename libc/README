@@ -1,0 +1,4 @@
+it is required to set environment vars :
+export __ZRT_HOST=something; 
+export ZVM_PREFIX=$SECCOMP_PREFIX;
+export ZRT_ROOT=$SECCOMP_ZRT_ROOT;
