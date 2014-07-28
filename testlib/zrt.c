@@ -118,6 +118,9 @@ int recursive_listdir( const char *path) {
 
 int main(int argc, char **argv)
 {
+    char buf[4096];
+    setvbuf(stdout, buf, _IOFBF, sizeof(buf));
+
     /*recursively print filesystem contents*/
     int files = 0;
     files += recursive_listdir("/");
