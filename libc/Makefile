@@ -82,11 +82,11 @@ BUILD:
 GLIBC_BUILD_DIR = BUILD/build-glibc-$(CROSSARCH)
 
 # Glibc is built with pregcc.
-GLIBC_CC = gcc -D__ZRT_HOST -U_FORTIFY_SOURCE  
+GLIBC_CC = gcc -D__ZRT_HOST -U_FORTIFY_SOURCE -fPIC
 
 # CFLAGS for building glibc.
 #switch off HP_TIMING
-GLIBC_CFLAGS += -O2 -g -fno-stack-protector -fPIC #-UHP_SMALL_TIMING_AVAIL
+GLIBC_CFLAGS += -O2 -g -fno-stack-protector #-UHP_SMALL_TIMING_AVAIL
 
 ARCH_DEST = $(DESTDIR)$(PREFIX)/$(CROSSARCH)
 ARCH_DEST_INC_NATIVE = $(PREFIX_NATIVE)/$(CROSSARCH)/include

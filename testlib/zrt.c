@@ -116,8 +116,12 @@ int recursive_listdir( const char *path) {
 }
 
 
+extern int switch_on_seccomp_bpf();
+
 int main(int argc, char **argv)
 {
+    switch_on_seccomp_bpf();
+
     char buf[4096];
     setvbuf(stdout, buf, _IOFBF, sizeof(buf));
 

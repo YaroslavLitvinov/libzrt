@@ -47,8 +47,6 @@ struct UserManifest* extern_manifest = &s_zrt_manifest;
 
 /****************** */
 
-
-
 static void* syscall6(int nr, void* arg0, size_t arg1,
 		      int arg2, int arg3, int arg4, unsigned long arg5)
 {
