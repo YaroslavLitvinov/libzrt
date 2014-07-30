@@ -57,9 +57,11 @@ export LIBZRT_PREFIX=$LIBC_PREFIX; export LIBZRT_ROOT=$ZRT_FOLDER;
 make -j4 -C$LIB_FOLDER || exit 1
 
 export __ZRT_HOST=something; export ZVM_PREFIX=$LIBC_PREFIX; export ZRT_ROOT=$ZRT_FOLDER;
-make -C$TESTLIB_FOLDER clean zrt || exit 1
-cd $TESTLIB_FOLDER
-time ./zrt >1
+make -C$TESTLIB_FOLDER clean zrt libzrt.so || exit 1
 
+cd $TESTLIB_FOLDER
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`;
+time ./zrt >1
+strace ./dyn-zrt-main
 cd `pwd`
 

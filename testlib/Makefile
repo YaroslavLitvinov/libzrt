@@ -26,9 +26,9 @@ zrt: zrt.o zvm.o
 	tar -cf tarimage.tar ../libc
 
 $(ZRT_SO): CFLAGS += -static $(ZRT_CFLAGS)
-$(ZRT_SO):
+$(ZRT_SO): zvm-libzrt.o
 	gcc -c -Wall -Werror -fPIC $(ZRT_CFLAGS) libzrt.c
-	gcc -shared -o $(ZRT_SO) libzrt.o $(ZRT_STATIC_LIBS) -Wl,--version-script=Versions
+	gcc -shared -o $(ZRT_SO) libzrt.o zvm-libzrt.o $(ZRT_STATIC_LIBS) -Wl,--version-script=Versions
 	gcc -Wall dyn-zrt-main.c -o dyn-zrt-main -L. -lzrt
 
 clean:

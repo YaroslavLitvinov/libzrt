@@ -17,7 +17,6 @@
 
 extern void _start (uint32_t *info);
 extern ssize_t __getdents (int fd, char *buf, size_t nbytes);
-struct UserManifest* extern_manifest;
 
 int zrt_errno;
 
@@ -313,5 +312,3 @@ ssize_t zrt_readlink(const char *pathname, char *buf, size_t bufsiz){
     return ret;
 }
 
-/*do not init*/
-void prepare_zrt_host(){}
