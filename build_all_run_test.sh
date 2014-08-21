@@ -50,14 +50,14 @@ cp $PATCH_FOLDER/elf_Versions $GLIBC_FOLDER/elf/Versions -p
 #patch zrt before build
 cp $PATCH_FOLDER/zvm.h $ZRT_FOLDER/lib/
 
-rm $BUILD_FOLDER $SECCOMP_PREFIX -rf
+rm $BUILD_FOLDER $LIBC_PREFIX -rf
 
 #build libc install to the $LIBZRT_PREFIX
+export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$LIBC_PREFIX; export ZRT_ROOT=$ZRT_FOLDER;
 export LIBZRT_PREFIX=$LIBC_PREFIX; export LIBZRT_ROOT=$ZRT_FOLDER;
 make -j4 -C$LIB_FOLDER || exit 1
 
-export __ZRT_HOST=something; export ZVM_PREFIX=$LIBC_PREFIX; export ZRT_ROOT=$ZRT_FOLDER;
-make -C$TESTLIB_FOLDER clean zrt libzrt.so || exit 1
+make -C$TESTLIB_FOLDER clean all || exit 1
 
 cd $TESTLIB_FOLDER
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`;

@@ -82,11 +82,14 @@ BUILD:
 GLIBC_BUILD_DIR = BUILD/build-glibc-$(CROSSARCH)
 
 # Glibc is built with pregcc.
-GLIBC_CC = gcc -D__ZRT_HOST -U_FORTIFY_SOURCE -fPIC
+GLIBC_CC = gcc -D__ZRT_HOST -D__ZRT_SO -U_FORTIFY_SOURCE -fPIC 
+# issue a warning whenever a value is implicitly converted (truncated)
+# from a 64-bit type to a 32-bit type
+#GLIBC_CC += -Wconversion
 
 # CFLAGS for building glibc.
 #switch off HP_TIMING
-GLIBC_CFLAGS += -O2 -g -fno-stack-protector #-UHP_SMALL_TIMING_AVAIL
+GLIBC_CFLAGS += -O2 -g #-fno-stack-protector #-UHP_SMALL_TIMING_AVAIL
 
 ARCH_DEST = $(DESTDIR)$(PREFIX)/$(CROSSARCH)
 ARCH_DEST_INC_NATIVE = $(PREFIX_NATIVE)/$(CROSSARCH)/include
@@ -134,9 +137,8 @@ install-glibc: build-with-glibc
 	$(MAKE) -f $(THISMAKEFILE) -C BUILD/build-glibc64 \
 	  install_root="$(INST_GLIBC_PREFIX)/$(CROSSARCH)" install
 #build zrt and replace zrt-stub by real implementation
-	export __ZRT_HOST=something; export ZVM_PREFIX=$(LIBZRT_PREFIX); export ZRT_ROOT=$(LIBZRT_ROOT);
+	export __ZRT_NOCPP=something; export __ZRT_HOST=something; export ZVM_PREFIX=$(LIBZRT_PREFIX); export ZRT_ROOT=$(LIBZRT_ROOT);
 	make -C$(LIBZRT_ROOT) clean build install
-
 
 ##################################################################
 # Build the entire toolchain.

@@ -1,3 +1,6 @@
+[env]
+name=PWD, value=/dev
+
 [args]
 args=zrt bla bla
 
@@ -5,7 +8,7 @@ args=zrt bla bla
 seconds=1370454582 #since 1970
 
 [debug]
-verbosity=1
+verbosity=4
 
 [fstab] 
 #inject archive contents into zrt fs

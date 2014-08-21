@@ -4,152 +4,146 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "memory/memory_syscall_handlers.h"
 
 #include "zvm.h"
 
-#define ZRT_HEAP_START 0xffffffff /*be determined at runtime*/
 #define ZRT_HEAP_SIZE 1024*1024*1024
 
 /*channels: stdin, stdout, stderr, nvram*/
 #define ZRT_DEBUG_FNAME "zrt.debug"
 #define ZRT_NVRAM_FNAME "zrt.nvram"
-#define ZRT_TARIMPORT_FNAME "tarimage.tar"
+#define ZRT_TARIMPORT_FNAME "zrt.import.tar"
 #define ZRT_TAREXPORT_FNAME "zrt.export.tar"
-#define ZRT_CHANNELS_COUNT 7
 
 #define CHANNEL_SIZE_LIMIT 999999999
 #define CHANNEL_OPS_LIMIT  999999999
-#define MANIFEST_CHANNELS {						\
-	{{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0},	0,SGetSPut,"/dev/stdin"}, \
-	    {{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/stdout"}, \
-		{{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/stderr"}, \
-		    {{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/debug"}, \
-			{{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0},	0,RGetSPut,"/dev/nvram"}, \
-			    {{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0},	0,RGetSPut, \
-										    "/dev/mount/import.tar"}, \
-				{{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,RGetRPut, "/dev/mount/export.tar"} \
-    } 
-#define MANIFEST_DEFAULTS(channels) {(void *)ZRT_HEAP_START, ZRT_HEAP_SIZE, 0, ZRT_CHANNELS_COUNT, channels }
-
-
+#define CHANNEL_STDIN {{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0},	0,SGetSPut,"/dev/stdin"}
+#define CHANNEL_STDOUT {{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/stdout"}
+#define CHANNEL_STDERR {{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/stderr"}
+#define CHANNEL_DEBUG  {{0, 0, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},	0,SGetSPut,"/dev/debug"}
+#define CHANNEL_NVRAM  {{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0},	0,RGetSPut,"/dev/nvram"}
+#define CHANNEL_TARIMPORT {{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, 0, 0}, 0,RGetSPut, "/dev/mount/import.tar"}
+#define CHANNEL_TAREXPORT {{CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT, CHANNEL_OPS_LIMIT, CHANNEL_SIZE_LIMIT},0,RGetRPut, "/dev/mount/export.tar"}
+#define MAX_CHANNELS_COUNT 10
 extern int* s_zrt_filetable;
 
 
 /****************** static zvm-emulated data*/
 /*extern variables*/
 int *s_zrt_filetable;
-int s_zrt_filetable_[10];
+int s_zrt_filetable_[MAX_CHANNELS_COUNT];
 
-struct ZVMChannel s_channels[] = MANIFEST_CHANNELS;
-struct UserManifest s_zrt_manifest = MANIFEST_DEFAULTS( s_channels );
+struct ZVMChannel s_channels[MAX_CHANNELS_COUNT];
+struct UserManifest s_zrt_manifest;
 struct UserManifest* extern_manifest = &s_zrt_manifest;
 
 /****************** */
 
-static void* syscall6(int nr, void* arg0, size_t arg1,
-		      int arg2, int arg3, int arg4, unsigned long arg5)
-{
-    register unsigned long r10 asm("r10") = r10;
-    register unsigned long r8 asm("r8") = r8;
-    register unsigned long r9 asm("r9") = r9;
-    void* ret;
-    
-    r10 = arg3;
-    r8 = arg4;
-    r9 = arg5;
-    asm volatile("syscall"
-		 : "=a" (ret)
-		 : "a" (nr), "D" (arg0), "S" (arg1), "d" (arg2)
-		 : "memory");
-    return ret;
-}
+struct ZVMChannel *open_channels_create_list(int32_t *count){
+    /*preopen files*/
+    int32_t channels_count = 0;
 
-void prepare_zrt_host(){
-    /*Emulate hypervisor. Initialize heap*/
-    /*set start heap address and allocate*/
+    struct ZVMChannel stdin_chan = CHANNEL_STDIN;
+    struct ZVMChannel stdout_chan = CHANNEL_STDOUT;
+    struct ZVMChannel stderr_chan = CHANNEL_STDERR;
+    struct ZVMChannel nvram_chan = CHANNEL_NVRAM;
+    struct ZVMChannel debug_chan = CHANNEL_DEBUG;
+    struct ZVMChannel import_chan = CHANNEL_TARIMPORT;
+    struct ZVMChannel export_chan = CHANNEL_TAREXPORT;
 
-    extern_manifest->heap_size = 1024*1024*1024;
-    void * heap = syscall6(__NR_mmap, NULL, extern_manifest->heap_size,
-			   PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
-    if ( heap == MAP_FAILED )
-	abort();
-    extern_manifest->heap_ptr = heap;
-    extern_manifest->heap_ptr = (void*)ROUND_UP((intptr_t)heap, PAGE_SIZE);
-    /*if heap start adress is aligned on pagesize then decremant heap size on pagesize's value*/
-    if ( heap != extern_manifest->heap_ptr )
-	extern_manifest->heap_size -= PAGE_SIZE;
+    /*add standard files*/
+    s_channels[channels_count] = stdin_chan;
+    s_zrt_filetable_[channels_count++] = 0; //stdin
+
+    s_channels[channels_count] = stdout_chan;
+    s_zrt_filetable_[channels_count++] = 1; //stdout
+
+    s_channels[channels_count] = stderr_chan;
+    s_zrt_filetable_[channels_count++] = 2; //stderr
 
     /*Emulate channels preopening*/
-    int nvram_fd;
-    asm volatile ("syscall"
-		  : "=a" (nvram_fd)
-		  : "0" (__NR_open),
-		    "D" (ZRT_NVRAM_FNAME),
-		    "S" (O_RDONLY)
-		  : "memory");
-    if (nvram_fd <0) abort();
+    int nvram_fd = open(ZRT_NVRAM_FNAME, O_RDONLY, 0);
+    if (nvram_fd <0){ perror(ZRT_NVRAM_FNAME); abort();}
+    s_channels[channels_count] = nvram_chan;
+    s_zrt_filetable_[channels_count++] = nvram_fd;
 
-    int debug_fd;
-    asm volatile ("syscall"
-		  : "=a" (debug_fd)
-		  : "0" (__NR_open),
-		    "D" (ZRT_DEBUG_FNAME),
-		    "S" (O_CREAT|O_WRONLY),
-		    "d" (0666)
-		  : "memory");
-    if (debug_fd < 0) abort();
+    int debug_fd = open(ZRT_DEBUG_FNAME, O_CREAT|O_WRONLY, 0666);
+    if (debug_fd < 0) {perror(ZRT_DEBUG_FNAME); abort();}
+    s_channels[channels_count] = debug_chan;
+    s_zrt_filetable_[channels_count++] = debug_fd;
 
-    int import_fd;
-    asm volatile ("syscall"
-		  : "=a" (import_fd)
-		  : "0" (__NR_open),
-		    "D" (ZRT_TARIMPORT_FNAME),
-		    "S" (O_RDONLY)
-		  : "memory");
-    if (import_fd < 0) abort();
+    int import_fd = open(ZRT_TARIMPORT_FNAME, O_RDONLY, 0);
+    if (import_fd < 0) {perror(ZRT_TARIMPORT_FNAME); abort();}
+    s_channels[channels_count] = import_chan;
+    s_zrt_filetable_[channels_count++] = import_fd;
 
-    int export_fd;
-    asm volatile ("syscall"
-		  : "=a" (export_fd)
-		  : "0" (__NR_open),
-		    "D" (ZRT_TAREXPORT_FNAME),
-		    "S" (O_CREAT|O_RDWR),
-		    "d" (0666)
-		  : "memory");
-    if (export_fd < 0) abort();
+    int export_fd = open(ZRT_TAREXPORT_FNAME, O_CREAT|O_RDWR, 0666);
+    if (export_fd < 0) {perror(ZRT_TAREXPORT_FNAME); abort();}
+    s_channels[channels_count] = export_chan;
+    s_zrt_filetable_[channels_count++] = export_fd;
 
     s_zrt_filetable = (int*)s_zrt_filetable_;
 
-    /*preopen files*/
-    int i=0;
-    s_zrt_filetable[i++] = 0; //stdin
-    s_zrt_filetable[i++] = 1; //stdout
-    s_zrt_filetable[i++] = 2; //stderr
-    s_zrt_filetable[i++] = debug_fd; //debug
-    s_zrt_filetable[i++] = nvram_fd; //nvram
-    s_zrt_filetable[i++] = import_fd; //import
-    s_zrt_filetable[i++] = export_fd; //export
+    *count = channels_count;
+    return s_channels;
+}
+
+
+void prepare_zrt_host(){
+    /*Emulate hypervisor. do all initializations*/
+
+    int32_t channels_count=0;
+    struct ZVMChannel *channels = open_channels_create_list(&channels_count);
+
+    uint32_t heap_size = ZRT_HEAP_SIZE;
+    heap_size *= 6;
+
+    /*allocate heap*/
+    void *heap = mmap(NULL, heap_size,
+		      PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if ( heap == MAP_FAILED )
+	perror("heap create FAILED");
+
+#define ALIGN(k, v) (((k)+((v)-1))&(~((v)-1)))
+    /*align heap on zrt's pagesize*/    
+    s_zrt_manifest.heap_ptr = (void*)ALIGN((intptr_t)heap, PAGE_SIZE);
+    /*if heap start adress is aligned on linux pagesize then decrement
+      heap size on zrt's pagesize value*/
+    s_zrt_manifest.heap_size = 
+	heap!=s_zrt_manifest.heap_ptr?heap_size-PAGE_SIZE:heap_size;
+    s_zrt_manifest.stack_size = 0;
+    s_zrt_manifest.channels_count = channels_count;
+    s_zrt_manifest.channels = channels;
 }
 
 ssize_t zvm_pread (int fd, void *buf, size_t nbytes, off_t offset){
     ssize_t ret;
-    if ( fd == 0 ){
-	zvm_read_write(ret, __NR_read, fd, buf, nbytes);
+    int chantype = extern_manifest->channels[fd].type;
+    fd = s_zrt_filetable[fd];
+    if ( chantype == SGetSPut || chantype == SGetRPut ){
+	ret = read(fd, buf, nbytes);
     }
     else
-	zvm_pread_pwrite(ret, __NR_pread, fd, buf, nbytes, offset);
+	ret = pread(fd, buf, nbytes, offset);
     return ret;
 }
 
-ssize_t zvm_pwrite (int fd, const void *buf, size_t n, off_t offset){
+ssize_t zvm_pwrite(int fd, const void *buf, size_t n, off_t offset){
     ssize_t ret;
-    if ( fd == 1 || fd == 2 ){
-	zvm_read_write(ret, __NR_write, fd, buf, n);
+    int chantype = extern_manifest->channels[fd].type;
+    fd = s_zrt_filetable[fd];
+    if ( chantype == SGetSPut || chantype == RGetSPut ){
+	ret = write(fd, buf, n);
     }
     else
-	zvm_pread_pwrite(ret, __NR_pwrite, fd, buf, n, offset);
+	ret = pwrite(fd, buf, n, offset);
     return ret;
 }
 
+void zvm_exit(int code){
+
+}
 

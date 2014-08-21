@@ -2,6 +2,7 @@
 	global: 
 	zrt_errno;
 	zrt__start;
+	zrt_seccomp_setup;
 	zrt_read;
 	zrt_write;
 	zrt_open;
@@ -34,7 +35,7 @@
 	zrt_nanosleep;
 	zrt_pread;
 	zrt_pwrite;
-	zrt_brk; 
+	zrt_sysbrk; 
 	zrt_mmap;
 	zrt_munmap;
 	zrt_truncate;
@@ -45,5 +46,6 @@
 	zrt_fcntl;
 	zrt_symlink;
 	zrt_readlink;
+	zrt_openat;
 	local: *;
 };

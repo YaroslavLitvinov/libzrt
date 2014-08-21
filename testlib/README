@@ -1,0 +1,2 @@
+export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$HOME/git/libzrt/libc/install; export ZRT_ROOT=$HOME/git/libzrt/libc/SRC/zrt; 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.

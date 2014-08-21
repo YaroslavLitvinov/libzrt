@@ -73,51 +73,15 @@ struct UserManifest
 
 extern ssize_t zvm_pread (int fd, void *buf, size_t nbytes, off_t offset);
 extern ssize_t zvm_pwrite (int fd, const void *buf, size_t n, off_t offset);
-
-/*linux pread64, pwrite64*/
-#define __NR_pread               17
-#define __NR_pwrite              18
+extern void zvm_exit(int status);
 
 #define MANIFEST ((const struct UserManifest const *)(extern_manifest))
 extern struct UserManifest* extern_manifest;
 
-extern ssize_t zvm_pread (int fd, void *buf, size_t nbytes, off_t offset);
-extern ssize_t zvm_pwrite (int fd, const void *buf, size_t n, off_t offset);
 extern void prepare_zrt_host();
-
-#define zvm_pread_pwrite(ret, op, desc, buffer, size, offset){	\
-	register unsigned long r10 asm("r10") = r10;		\
-        r10 = offset;						\
-	asm volatile ("syscall"					\
-		      : "=a" (ret)				\
-		      : "0" (op),				\
-			"D" (s_zrt_filetable[(desc)]),		\
-			"S" (buffer),				\
-			"d" (size)				\
-		      : "memory", "cc");			\
-    }
-
-#define zvm_read_write(ret, op, desc, buffer, size){		\
-	asm volatile ("syscall"					\
-		      : "=a" (ret)				\
-		      : "0" (op),				\
-			"D" (s_zrt_filetable[(desc)]),		\
-			"S" (buffer),				\
-			"d" (size)				\
-		      : "memory", "cc");			\
-    }
-
 
 #define zvm_jail(buffer, size) 0
 #define zvm_unjail(buffer, size) 0
-#define zvm_exit(code) {			\
-	int ret;				\
-	asm volatile ("syscall"			\
-		      : "=a" (ret)		\
-		      : "0" (__NR_exit),	\
-			"D" (code)		\
-		      : "memory");		\
-    }
 
 #define zvm_fork() 1
 
