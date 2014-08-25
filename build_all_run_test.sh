@@ -61,7 +61,6 @@ make -C$TESTLIB_FOLDER clean all || exit 1
 
 cd $TESTLIB_FOLDER
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`;
-time ./zrt >1
-strace ./dyn-zrt-main
+LD_PRELOAD=libzrt.so ./dyn-zrt-main
 cd `pwd`
 

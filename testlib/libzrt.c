@@ -20,6 +20,7 @@ extern int LIBZRT_SYMBOL(errno);
 #define SET_ZRT_ERRNO zrt_errno = LIBZRT_SYMBOL(errno)
 
 int zrt_errno;
+char *argv_env[3];
 
 /*not for export.*/
 int LIBZRT_SYMBOL(init)(int argc, char **argv, char **nvram_envp){  
@@ -47,6 +48,18 @@ int LIBZRT_SYMBOL(main)(int nvram_argc, char **nvram_argv, char **nvram_envp){
 
     /*run eluexec*/
     return 0;
+}
+
+static void __attribute__ ((constructor)) \
+  zrt_constructor(void);
+ 
+static void zrt_constructor(void) {
+    /*get manifest name and parse it*/
+    /*Initialize zrt and provide stub args for internals*/
+    argv_env[0] = "zrt_constructor";
+    argv_env[1] = argv_env[2] = NULL;
+    zrt__start(1, (char**)argv_env);
+    zrt_seccomp_setup();
 }
 
 /*use inside of libzrt original args get with executable*/
@@ -362,3 +375,8 @@ void LIBZRT_SYMBOL(pthread_barrier_init)(){}
 void LIBZRT_SYMBOL(__pthread_register_cancel)(){}
 void LIBZRT_SYMBOL(_dl_num_cache_relocations)(){}
 void LIBZRT_SYMBOL(pthread_barrier_wait)(){}
+void LIBZRT_SYMBOL(__gcc_personality_v0)(){}
+void LIBZRT_SYMBOL(_Unwind_GetIP)(){}
+void LIBZRT_SYMBOL(_Unwind_Resume)(){}
+void LIBZRT_SYMBOL(_Unwind_Backtrace)(){}
+void LIBZRT_SYMBOL(__fdelt_chk)(){}

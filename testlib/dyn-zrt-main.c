@@ -54,6 +54,8 @@ int recursive_listdir( const char *path) {
     }
 
     while ( (entry = readdir(dp)) ){
+	if ( !strcmp(".", entry->d_name) ) continue;
+	if ( !strcmp("..", entry->d_name) ) continue;
 	int compound_path_len = strlen(path) + strlen(entry->d_name) + 2;
 	char* compound_path = malloc( compound_path_len );
 	int len = strlen(path);
@@ -118,9 +120,6 @@ int recursive_listdir( const char *path) {
 int main(int argc, char **argv)
 {
     char buf[4096];
-
-    zrt__start(argc, argv);
-    zrt_seccomp_setup();
 
     setvbuf(stdout, buf, _IOFBF, sizeof(buf));
     /*recursively print filesystem contents*/

@@ -1,6 +1,2 @@
 before building need to export followings: 
 export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$HOME/git/libzrt/libc/install; export ZRT_ROOT=$HOME/git/libzrt/libc/SRC/zrt; 
-
-to run with seccomp try any app in this manner:
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. 
-LD_PRELOAD=libzrt.so ./dyn-zrt-main

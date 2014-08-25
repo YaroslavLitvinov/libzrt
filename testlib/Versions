@@ -1,6 +1,7 @@
 {
 	global: 
 	zrt_errno;
+	zrt_constructor;
 	zrt__start;
 	zrt_seccomp_setup;
 	zrt_read;
