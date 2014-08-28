@@ -4,11 +4,14 @@ name=PWD, value=/dev
 [args]
 args=zrt bla bla
 
+[mapping]
+channel=/dev/stdout, mode=char  #CHAR DEV
+
 [time]
 seconds=1370454582 #since 1970
 
 [debug]
-verbosity=4
+verbosity=2
 
 [fstab] 
 #inject archive contents into zrt fs

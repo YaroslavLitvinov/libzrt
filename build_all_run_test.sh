@@ -8,15 +8,24 @@ SRC_FOLDER=$LIB_FOLDER/SRC
 BUILD_FOLDER=$LIB_FOLDER/BUILD
 LIBC_PREFIX=$LIB_FOLDER/install
 
-
+ZVM_FOLDER=`pwd`/zerovm
 GLIBC_FOLDER=$SRC_FOLDER/glibc
 LINUX_HEADERS_FOLDER=$SRC_FOLDER/linux-headers-for-nacl
 ZRT_FOLDER=$SRC_FOLDER/zrt
 
+ZVM_REPO=https://github.com/YaroslavLitvinov/zerovm.git
 GLIBC_REPO=https://github.com/YaroslavLitvinov/glibc.git
 LINUX_HEADERS_REPO=https://github.com/zerovm/linux-headers-for-nacl.git
 ZRT_REPO=https://github.com/YaroslavLitvinov/zrt.git
 mkdir -p $SRC_FOLDER $INSTALL_FOLDER
+
+#ensure zerovm repo is exist
+if [[ ! -d $ZVM_FOLDER ]] ; then \
+  git clone $ZVM_REPO ; \
+  cd $ZVM_FOLDER; \
+  git checkout so; \
+  cd $SRC_FOLDER; \
+fi
 
 cd $SRC_FOLDER
 
@@ -61,6 +70,6 @@ make -C$TESTLIB_FOLDER clean all || exit 1
 
 cd $TESTLIB_FOLDER
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`;
-LD_PRELOAD=libzrt.so ./dyn-zrt-main
+MANIFEST_PATH=dyn-zrt-main.manifest.temp LD_PRELOAD=libzrt.so ./dyn-zrt-main
 cd `pwd`
 

@@ -128,5 +128,9 @@ int main(int argc, char **argv)
     	printf("All files count is %d\n", ret);
     	fflush(0);
     }
+
+    /* zrt__start(argc, argv); */
+    /* zrt_seccomp_setup(); */
+
     return 0;
 }

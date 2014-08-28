@@ -101,6 +101,8 @@ ARCH_DEST_INC_NATIVE = $(PREFIX_NATIVE)/$(CROSSARCH)/include
 LIB_BITS ?= 64
 ARCH_DEST_LIB_NATIVE = $(PREFIX_NATIVE)/$(CROSSARCH)/$(if $(filter 32,$(LIB_BITS)),lib32,lib)
 
+############################
+
 BUILD/stamp-glibc64: SRC/glibc glibc-adhoc-files zrt-stub64
 	if [[ ! -d $(LINUX_HEADERS) ]] ; then \
 	  $(MAKE) -f $(THISMAKEFILE) SRC/linux-headers-for-nacl ; \
@@ -131,7 +133,7 @@ BUILD/stamp-glibc64: SRC/glibc glibc-adhoc-files zrt-stub64
 # Used, i.e., on buildbots.
 INST_GLIBC_PREFIX ?= $(PREFIX)
 .PHONY: install-glibc
-install-glibc: build-with-glibc
+install-glibc: build-with-glibc 
 #	rm -rf "$(INST_GLIBC_PREFIX)"
 #	mkdir "$(INST_GLIBC_PREFIX)"
 	$(MAKE) -f $(THISMAKEFILE) -C BUILD/build-glibc64 \

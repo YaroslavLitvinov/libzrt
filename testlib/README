@@ -3,4 +3,5 @@ export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$HOME/
 
 to run with seccomp try any app in this manner:
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. 
-LD_PRELOAD=libzrt.so ./dyn-zrt-main
+MANIFEST_PATH=dyn-zrt-main.manifest.temp LD_PRELOAD=libzrt.so ./dyn-zrt-main
+

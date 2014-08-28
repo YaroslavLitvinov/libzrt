@@ -373,8 +373,8 @@ void LIBZRT_SYMBOL(pthread_detach)(void){}
 void LIBZRT_SYMBOL(__pthread_unregister_cancel)(){}
 void LIBZRT_SYMBOL(pthread_barrier_init)(){}
 void LIBZRT_SYMBOL(__pthread_register_cancel)(){}
-void LIBZRT_SYMBOL(_dl_num_cache_relocations)(){}
 void LIBZRT_SYMBOL(pthread_barrier_wait)(){}
+void LIBZRT_SYMBOL(_dl_num_cache_relocations)(){}
 void LIBZRT_SYMBOL(__gcc_personality_v0)(){}
 void LIBZRT_SYMBOL(_Unwind_GetIP)(){}
 void LIBZRT_SYMBOL(_Unwind_Resume)(){}
