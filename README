@@ -1,2 +1,13 @@
-before building need to export followings: 
-export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$HOME/git/libzrt/libc/install; export ZRT_ROOT=$HOME/git/libzrt/libc/SRC/zrt; 
+libzrt project is an experimental hypervisor uses seccomp sandboxing.
+components of libzrt.so:
+1. libc library - some sort of glibc library statically linked into
+shared library and not depends on generic glibc provided by
+linux. This library has own implementation of subset of syscalls which
+can be used instead of standard syscalls; Sources is derived from
+zerovm/zrt, zerovm/glibc projects.
+2. zvm3.so - which is dynamically linked with libzrt.so and giving
+some functions that allow to support zerovm manifest file. Sources are
+derived from zerovm/zerovm project;
+3. seccomp engine - disallow direct syscalls executing except read,
+write, exit, sighandler; It's setup handler intercepting
+linux syscalls and replacing it by alternative implementation from item #1;
