@@ -423,7 +423,11 @@ static int install_filter(void)
                 BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
                 BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_write, 0, 1),
                 BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+                BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_pwrite64, 0, 1),
+                BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
                 BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_read, 0, 1),
+                BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+                BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_pread64, 0, 1),
                 BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
                
                 BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_TRAP),

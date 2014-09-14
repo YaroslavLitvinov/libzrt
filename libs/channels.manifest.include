@@ -9,4 +9,6 @@ Channel = {ABS_PATH}{NAME}.stderr.log.temp, /dev/stderr, 0, 0, 0, 0, 999999, 999
 Channel = {ABS_PATH}{NAME}.nvram, /dev/nvram, 1, 0, 999999, 999999, 0, 0
 Channel = {ABS_PATH}{NAME}.debug.log.temp, /dev/debug, 0, 0, 0, 0, 50999999, 50999999
 Channel = {ABS_PATH}{NAME}.foo.temp, /dev/mount/foo, 0, 0, 0, 0, 999999, 999999
+Channel = {ABS_PATH}{NAME}.import.tar.temp, /dev/mount/import.tar, 1, 0, 999999999, 99999999, 0, 0
+
 =======================================================================

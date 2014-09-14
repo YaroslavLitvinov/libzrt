@@ -8,10 +8,13 @@ CLIB_PATH=./override_libc
 ARCH=x86_64
 ZRT_CFLAGS= -I$(ZRT_ROOT)/lib/zcalls -I$(ZRT_ROOT)/lib/helpers -I$(ZRT_ROOT)/lib \
 -I$(ZVM_PREFIX)/$(ARCH)/include
+
 ZRT_STATIC_LIBS= -Wl,--start-group \
 $(CLIB_PATH)/libzrt.a $(CLIB_PATH)/libnetworking.a $(CLIB_PATH)/libmapreduce.a $(CLIB_PATH)/libtar.a \
 $(CLIB_PATH)/libc.a $(CLIB_PATH)/librt.a $(CLIB_PATH)/libcrypt.a $(CLIB_PATH)/libnss_files.a \
-$(CLIB_PATH)/libnss_dns.a $(CLIB_PATH)/libresolv.a $(CLIB_PATH)/libpthread.a -Wl,--end-group 
+$(CLIB_PATH)/libnss_dns.a $(CLIB_PATH)/libresolv.a $(CLIB_PATH)/libpthread.a \
+-Wl,--end-group 
+#$(CLIB_PATH)/libfs.a
 
 all: $(EXECUTABLES)
 
@@ -30,17 +33,16 @@ $(ZRT_SO): CFLAGS = -Wall -g -Werror -fPIC $(ZRT_CFLAGS)  -DPREFIX_ZRT_SYMBOLS -
 $(ZRT_SO): CFLAGS += -I$(ZVM_PREFIX)/$(ARCH)/include
 $(ZRT_SO): bpf/simple-seccomp.o libzrt.o zvm.o zrt-syscalls.o
 $(ZRT_SO): override_libc
-	export LD_LIBRARY_PATH=$(CURDIR)
+	export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)
 	gcc -m64 -g -shared -o $(ZRT_SO) libzrt.o zvm.o zrt-syscalls.o  bpf/simple-seccomp.o \
 	-Wl,--whole-archive -Wl,-static $(ZRT_STATIC_LIBS) -Wl,--no-whole-archive \
-	-Wl,-Bdynamic -L$(CURDIR) -lzvm3
-#	-L$(ZVM_PREFIX)/$(ARCH)/lib -Wl,--whole-archive -lbfd -liberty -Wl,--no-whole-archive 
-#-Wl,--version-script=Versions -nostdlib 
+	-Wl,-Bdynamic -L$(CURDIR) -lzvm3 -lstdc++ -ldl
 
 dyn-zrt-main: 
-	gcc -Wall -g dyn-zrt-main.c -o $@ #-L. -lzrt -ldl
+	g++ -Wall -g dyn-zrt-main.c -o $@ #-L. -lzrt -lzvm3
+	tar -cf $@.import.tar.temp ../zerovm
 #genmanifest
-	MEMORY=33554432 \
+	MEMORY=4294967296 \
 	TIMEOUT=20 \
 	ABS_PATH=$(CURDIR) \
 	NAME=$@ \
@@ -48,17 +50,15 @@ dyn-zrt-main:
 	./template.sh manifest.template > $@.manifest.temp
 
 override_libc:
-	rm -fr override_libc
+	rm -fr override_libc symbols_replace
 	mkdir -p override_libc
 	`find $(ZVM_PREFIX)/$(ARCH)/lib -name "*.a" | xargs cp -t ./override_libc`
-	`find ./override_libc -type f \( -iname "*.a" ! -iname "libbfd.a" ! -iname "libiberty.a" \) | xargs -l objcopy --localize-symbol=fstatat --prefix-symbols=__zrt_ `
-	`find ./override_libc -name '*.a' | xargs -l objcopy \
-	--redefine-sym __zrt__GLOBAL_OFFSET_TABLE_=_GLOBAL_OFFSET_TABLE_ \
-	--redefine-sym __zrt_zvm_pwrite=zvm_pwrite \
-	--redefine-sym __zrt_zvm_pread=zvm_pread \
-	--redefine-sym __zrt_zvm_exit=zvm_exit \
-	--redefine-sym __zrt_prepare_zrt_host=prepare_zrt_host \
-	--redefine-sym __zrt_extern_manifest=extern_manifest  `
+	`find ./override_libc -name "*.a" | xargs nm -A \
+	| awk '{if ($$2 != "U") {print $$0}}' \
+	| awk '{ print $$3, "__zrt_"$$3 }' | sort | uniq > symbols_replace`
+	`find ./override_libc -name "*.a" | xargs -l objcopy --redefine-syms=symbols_replace `
 
 clean:
-	rm -rf override_libc bpf/*.o *.o $(ZRT_SO) $(EXECUTABLES) tarimage.tar *.temp
+	rm -rf override_libc symbols_replace bpf/*.o *.o $(ZRT_SO) $(EXECUTABLES) tarimage.tar *.temp
+
+#grep -in -e " t " -e " d " -e " w " -e " c " -e " b " -e " v "

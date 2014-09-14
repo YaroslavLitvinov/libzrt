@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
+#include "zvminit.h"
+
 #define ZVMSO
 #include "src/main/manifest.h"
 #include "src/channels/channel.h"
@@ -19,22 +21,6 @@
 struct UserManifest s_user_manifest;
 struct UserManifest *extern_manifest=NULL;
 struct Manifest *s_system_manifest=NULL;
-
-/****************** static zvm-emulated data*/
-/* struct ZVMChannel s_channels[MAX_CHANNELS_COUNT]; */
-
-
-/*dl zvm3.so functions*/
-/* void *f_ManifestCtor; */
-/* void *f_ManifestDtor; */
-/* void *f_GetChannel; */
-/* void *f_ChannelsCtor; */
-
-//struct Manifest *(*ManifestCtor)(const char *);
-//void (*ManifestDtor)(struct Manifest *);
-//struct ChannelDesc* (*GetChannel)(struct Manifest *manifest, int index);
-//void (*ChannelsCtor)(struct Manifest *manifest);
-
 
 /****************** */
 struct ZVMChannel *open_channels_create_list(struct Manifest *manifest){
@@ -65,26 +51,9 @@ struct UserManifest* setup_user_manifest(struct UserManifest* user_manifest,
     return user_manifest;
 }
 
-void prepare_zrt_host(){
+void zvm_session_init(const char *manifest_path ){
     /*Emulate hypervisor. do all initializations*/
 
-    /**/
-    /* void *libhdl = dlopen( "./libzvm3.so", RTLD_NOW|RTLD_DEEPBIND); */
-    /* if (!libhdl) */
-    /* 	{ */
-    /* 	    fprintf(stderr, "Problem with loading SO: %s\n", */
-    /* 		    dlerror()); */
-    /* 	    exit(1); */
-    /* 	} */
-    /* f_ManifestCtor = (struct Manifest *(*)(const char *))dlsym(libhdl, "ManifestCtor"); */
-    /* f_ManifestDtor = (void (*)(struct Manifest *))dlsym(libhdl, "ManifestDtor"); */
-    /* f_GetChannel = (struct ChannelDesc* (*)(struct Manifest *manifest, int index))dlsym(libhdl, "GetChannel"); */
-    /* f_ChannelsCtor = (void (*)(struct Manifest *manifest))dlsym(libhdl, "ChannelsCtor"); */
-
-    /* if (!ManifestCtor || !ManifestDtor) */
-    /* 	fprintf(stderr, "Problem loading symbol: %s\n", dlerror()); */
-
-    char *manifest_path = getenv("MANIFEST_PATH");
     if ( manifest_path == NULL ){
 	fprintf(stderr, "environment variable MANIFEST_PATH not specified\n");
 	exit(1);
@@ -93,13 +62,25 @@ void prepare_zrt_host(){
     if (s_system_manifest != NULL){	
 	ChannelsCtor(s_system_manifest);
 
-	/*allocate heap*/
+#ifdef USE_MMAP_MEMORY_LIBZRT
+	/*allocate heap using mmap*/
 	void *heap = mmap(NULL, s_system_manifest->mem_size,
 			  PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 	if ( heap == MAP_FAILED ){
-	    perror("heap create FAILED");
+	    perror("heap create FAILED by mmap");
 	    exit(1);
 	}
+#else
+	void *heap = sbrk(0);
+	void *heap_brk = heap+s_system_manifest->mem_size;
+	extern void *__curbrk;
+	printf("before heap_ptr=%p\n", heap);fflush(0);
+	if ( brk(heap_brk) != 0 ){
+	    perror("heap create FAILED by brk");
+	    exit(1);
+	}
+	__curbrk = heap_brk;
+#endif //USE_MMAP_MEMORY_LIBZRT
 
 	extern_manifest = setup_user_manifest(&s_user_manifest,
 					      heap, s_system_manifest->mem_size, 

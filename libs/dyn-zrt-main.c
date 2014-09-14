@@ -57,7 +57,7 @@ int recursive_listdir( const char *path) {
 	if ( !strcmp(".", entry->d_name) ) continue;
 	if ( !strcmp("..", entry->d_name) ) continue;
 	int compound_path_len = strlen(path) + strlen(entry->d_name) + 2;
-	char* compound_path = malloc( compound_path_len );
+	char* compound_path = (char*)malloc( compound_path_len );
 	int len = strlen(path);
 	/*construct full filename for current processing file returned by readdir*/
 	if ( len > 0 && path[len-1] == '/' ){
@@ -76,7 +76,7 @@ int recursive_listdir( const char *path) {
 	    print_prefix(path_deep_level(compound_path));
 	    /*retrieve stat for to get file size, assert on error
 	      stat should not get fail for now*/
-	    int err = stat( compound_path, &s_temp_stat );
+	    int err = lstat( compound_path, &s_temp_stat );
 	    assert( err == 0 ); 
 
 	    printf( "%s, size=%u, ", 
@@ -111,6 +111,7 @@ int recursive_listdir( const char *path) {
 	    files_count+=recursive_listdir(compound_path);
 	}
 	free(compound_path);
+	fflush(0);
     }
 
     closedir(dp);
@@ -121,6 +122,9 @@ int main(int argc, char **argv)
 {
     char buf[4096];
 
+    char* temp = new char[1000000000];
+    delete temp ;
+
     setvbuf(stdout, buf, _IOFBF, sizeof(buf));
     /*recursively print filesystem contents*/
     int ret=0;
@@ -129,8 +133,8 @@ int main(int argc, char **argv)
     	fflush(0);
     }
 
-    /* zrt__start(argc, argv); */
-    /* zrt_seccomp_setup(); */
+    /* extern char **__zrt_environ; */
+    /* char *env = *__zrt_environ; */
 
     return 0;
 }

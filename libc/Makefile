@@ -60,7 +60,7 @@ USER_LDFLAGS = -s
 
 # By default all toolchain executables are x86-32 executables, use
 # HOST_TOOLCHAIN_BITS=64 to make them x86-64 executables.
-HOST_TOOLCHAIN_BITS = 32
+HOST_TOOLCHAIN_BITS = 64
 
 # Convert CROSSARCH (nacl or nacl64) to (32 or 64).
 BITSPLATFORM = 64
@@ -134,13 +134,11 @@ BUILD/stamp-glibc64: SRC/glibc glibc-adhoc-files zrt-stub64
 INST_GLIBC_PREFIX ?= $(PREFIX)
 .PHONY: install-glibc
 install-glibc: build-with-glibc 
-#	rm -rf "$(INST_GLIBC_PREFIX)"
-#	mkdir "$(INST_GLIBC_PREFIX)"
 	$(MAKE) -f $(THISMAKEFILE) -C BUILD/build-glibc64 \
 	  install_root="$(INST_GLIBC_PREFIX)/$(CROSSARCH)" install
 #build zrt and replace zrt-stub by real implementation
 	export __ZRT_NOCPP=something; export __ZRT_HOST=something; export ZVM_PREFIX=$(LIBZRT_PREFIX); export ZRT_ROOT=$(LIBZRT_ROOT);
-	make -C$(LIBZRT_ROOT) clean build install
+	__NO_MEMORY_FS=1 make -C$(LIBZRT_ROOT) clean build install
 
 ##################################################################
 # Build the entire toolchain.
@@ -153,9 +151,6 @@ zrt-stub64:
 	rm -f $(LIBZRT_ROOT)/lib/zrt.o
 	$(GLIBC_CC) -m64 $(ZRT_BUILD_OBJ)
 
-# On platforms where glibc build is slow or unavailable you can specify
-# glibc_download.sh (or any other program) to download glibc
-INST_GLIBC_PROGRAM ?= none
 .PHONY: build-with-glibc
 build-with-glibc: BUILD/stamp-glibc64
 

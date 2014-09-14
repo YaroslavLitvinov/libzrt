@@ -2,7 +2,7 @@
 
 PATCH_FOLDER=`pwd`/patch_files
 LIB_FOLDER=`pwd`/libc
-TESTLIB_FOLDER=`pwd`/testlib
+LIBS_FOLDER=`pwd`/libs
 
 SRC_FOLDER=$LIB_FOLDER/SRC
 BUILD_FOLDER=$LIB_FOLDER/BUILD
@@ -62,13 +62,13 @@ cp $PATCH_FOLDER/zvm.h $ZRT_FOLDER/lib/
 rm $BUILD_FOLDER $LIBC_PREFIX -rf
 
 #build libc install to the $LIBZRT_PREFIX
-export __ZRT_HOST=something; export __ZRT_SO=something; export ZVM_PREFIX=$LIBC_PREFIX; export ZRT_ROOT=$ZRT_FOLDER;
-export LIBZRT_PREFIX=$LIBC_PREFIX; export LIBZRT_ROOT=$ZRT_FOLDER;
+export __ZRT_HOST=something; export ZVM_PREFIX=$LIBC_PREFIX; export ZRT_ROOT=$ZRT_FOLDER;
+export LIBZRT_PREFIX=$ZVM_PREFIX; export LIBZRT_ROOT=$ZRT_ROOT;
 make -j4 -C$LIB_FOLDER || exit 1
 
-make -C$TESTLIB_FOLDER clean all || exit 1
+make -C$LIBS_FOLDER clean all || exit 1
 
-cd $TESTLIB_FOLDER
+cd $LIBS_FOLDER
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`;
 MANIFEST_PATH=dyn-zrt-main.manifest.temp LD_PRELOAD=libzrt.so ./dyn-zrt-main
 cd `pwd`

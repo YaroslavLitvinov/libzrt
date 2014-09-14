@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <dirent.h>
 
+#define MANIFEST_PATH getenv("MANIFEST_PATH")
+
 void zrt_seccomp_setup();
 
 void zrt__start (int argc, char **argv);

@@ -1,4 +1,5 @@
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <time.h>
 #include <sys/types.h>
@@ -12,15 +13,24 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
+#include <dlfcn.h>
+#include <assert.h>
+
 #include "zrt.h"
 #include "libzrt.h"
 #include "libzrt_externs.h"
+#include "zvminit.h"
+
+
+#define DEBUG_PRINTF
 
 extern int LIBZRT_SYMBOL(errno);
 #define SET_ZRT_ERRNO zrt_errno = LIBZRT_SYMBOL(errno)
 
 int zrt_errno;
 char *argv_env[3];
+ 
+void __attribute__ ((constructor)) zrt_constructor(void);
 
 /*not for export.*/
 int LIBZRT_SYMBOL(init)(int argc, char **argv, char **nvram_envp){  
@@ -50,16 +60,14 @@ int LIBZRT_SYMBOL(main)(int nvram_argc, char **nvram_argv, char **nvram_envp){
     return 0;
 }
 
-static void __attribute__ ((constructor)) \
-  zrt_constructor(void);
- 
-static void zrt_constructor(void) {
+void zrt_constructor(void) {
     /*get manifest name and parse it*/
     /*Initialize zrt and provide stub args for internals*/
     argv_env[0] = "zrt_constructor";
     argv_env[1] = argv_env[2] = NULL;
-    zrt__start(1, (char**)argv_env);
+    zvm_session_init(MANIFEST_PATH);
     zrt_seccomp_setup();
+    zrt__start(1, (char**)argv_env);
 }
 
 /*use inside of libzrt original args get with executable*/
@@ -85,6 +93,9 @@ ssize_t zrt_write(int fd, const void *buf, size_t count){
 }
 
 int zrt_open(const char *filename, int flags, int mode){
+#ifdef DEBUG_PRINTF
+    printf("%s %s, %d\n", __func__, filename, flags);
+#endif //DEBUG_PRINTF
     int ret = LIBZRT_SYMBOL(open)(filename, flags, (mode_t)mode);
     SET_ZRT_ERRNO;
     return ret;
@@ -274,7 +285,13 @@ ssize_t zrt_pwrite(int fd, const void *buf, size_t count, off_t offset){
 }
 
 void* zrt_sysbrk(void *addr){
+#ifdef DEBUG_PRINTF
+    printf("%s addr=%p ", __func__, addr );
+#endif //DEBUG_PRINTF
     int ret = LIBZRT_SYMBOL(zrt_zcall_prolog_sysbrk)(&addr);
+#ifdef DEBUG_PRINTF
+    printf("ret=%p\n", addr );
+#endif //DEBUG_PRINTF
     SET_ZRT_ERRNO;
     if ( ret == 0 )
 	return addr;
@@ -285,12 +302,18 @@ void* zrt_sysbrk(void *addr){
 void *zrt_mmap(void *addr, size_t length, int prot, int flags,
 	   int fd, off_t offset){
     void *ret = LIBZRT_SYMBOL(mmap)(addr, length, prot, flags, fd, offset);
+#ifdef DEBUG_PRINTF
+    printf("%s ret=%p, addr=%p, length=%d\n", __func__, ret, addr, (int)length );
+#endif //DEBUG_PRINTF
     SET_ZRT_ERRNO;
     return ret;
 }
 
 int zrt_munmap(void *addr, size_t length){
     int ret = LIBZRT_SYMBOL(munmap)(addr, length);
+#ifdef DEBUG_PRINTF
+    printf("%s ret=%d, addr=%p, length=%d\n", __func__, ret, addr, (int)length );
+#endif //DEBUG_PRINTF
     SET_ZRT_ERRNO;
     return ret;
 }
@@ -369,11 +392,11 @@ int zrt_openat(int dfd, const char *filename, int flags, int mode){
 
 
 /*stubs*/
-void LIBZRT_SYMBOL(pthread_detach)(void){}
-void LIBZRT_SYMBOL(__pthread_unregister_cancel)(){}
-void LIBZRT_SYMBOL(pthread_barrier_init)(){}
-void LIBZRT_SYMBOL(__pthread_register_cancel)(){}
-void LIBZRT_SYMBOL(pthread_barrier_wait)(){}
+void pthread_detach(void){}
+void __pthread_unregister_cancel(){}
+void pthread_barrier_init(){}
+void __pthread_register_cancel(){}
+void pthread_barrier_wait(){}
 void LIBZRT_SYMBOL(_dl_num_cache_relocations)(){}
 void LIBZRT_SYMBOL(__gcc_personality_v0)(){}
 void LIBZRT_SYMBOL(_Unwind_GetIP)(){}
