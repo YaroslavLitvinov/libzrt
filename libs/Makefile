@@ -8,6 +8,8 @@ CLIB_PATH=./override_libc
 ARCH=x86_64
 ZRT_CFLAGS= -I$(ZRT_ROOT)/lib/zcalls -I$(ZRT_ROOT)/lib/helpers -I$(ZRT_ROOT)/lib \
 -I$(ZVM_PREFIX)/$(ARCH)/include
+#This option avoids including stdc-predef.h while building with gcc 4.8 
+ZRT_CFLAGS += -ffreestanding
 
 ZRT_STATIC_LIBS= -Wl,--start-group \
 $(CLIB_PATH)/libzrt.a $(CLIB_PATH)/libnetworking.a $(CLIB_PATH)/libmapreduce.a $(CLIB_PATH)/libtar.a \
@@ -28,9 +30,10 @@ $(ZVM_SO):
 	make -C$(ZVM_PATH) clean $(ZVM_SO)
 	cp $(ZVM_PATH)/libzvm3.so .
 
-$(ZRT_SO): 
+$(ZRT_SO): #just setup a cflags
 $(ZRT_SO): CFLAGS = -Wall -g -Werror -fPIC $(ZRT_CFLAGS)  -DPREFIX_ZRT_SYMBOLS -I$(ZVM_PATH) -I. `pkg-config --cflags glib-2.0`
 $(ZRT_SO): CFLAGS += -I$(ZVM_PREFIX)/$(ARCH)/include
+$(ZRT_SO): #goals itself
 $(ZRT_SO): bpf/simple-seccomp.o libzrt.o zvm.o zrt-syscalls.o
 $(ZRT_SO): override_libc
 	export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(CURDIR)
