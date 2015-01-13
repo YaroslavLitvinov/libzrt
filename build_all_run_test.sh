@@ -14,7 +14,7 @@ LINUX_HEADERS_FOLDER=$SRC_FOLDER/linux-headers-for-nacl
 ZRT_FOLDER=$SRC_FOLDER/zrt
 
 ZVM_REPO=https://github.com/YaroslavLitvinov/zerovm.git
-GLIBC_REPO=https://github.com/YaroslavLitvinov/glibc.git
+GLIBC_REPO=https://github.com/zerovm/glibc.git
 LINUX_HEADERS_REPO=https://github.com/zerovm/linux-headers-for-nacl.git
 ZRT_REPO=https://github.com/YaroslavLitvinov/zrt.git
 mkdir -p $SRC_FOLDER $INSTALL_FOLDER
@@ -33,7 +33,7 @@ cd $SRC_FOLDER
 if [[ ! -d $GLIBC_FOLDER ]] ; then \
   git clone $GLIBC_REPO ; \
   cd $GLIBC_FOLDER; \
-  git checkout dev; \
+  git checkout; \
   cd $SRC_FOLDER; \
 fi
 
